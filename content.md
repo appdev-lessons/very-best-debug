@@ -34,21 +34,8 @@ There is one tricky bug that we should discuss and solve together.
 
 Assuming a series of `/venue/ID` show page bugs have been dealt with, if we refresh `/venues/1`, then we eventually get the error:
 
-```
-undefined method `username' for nil:NilClass
-```
-
-And we see the highlighted code in the `app/views/venue_templates/details.html.erb` view template is coming where we try to call `comment.commenter.username`:
-
-```erb
-  <% @the_venue.comments.each do |comment| %>
-  <tr>
-    <td>
-      <%= comment.commenter.username %>
-    </td>
-```
-
 ![](/assets/better-errors-venue-comments-bug.png)
+{: .bleed-full }
 
 From our experience, we know that the `comment.commenter` is somehow `nil`. Above this, we see that we are calling `.comments` on our `@the_venue` object in order to get a list of comments for looping over and displaying: `@the_venue.comments.each do |comment|`.
 
