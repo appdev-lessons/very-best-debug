@@ -110,11 +110,33 @@ That brings us to the block variable `comment` in our `.each` loop. At the bette
 
 Now at the REPL try: `>> comment.commenter`. It gives us `=> nil`! 
 
-How could we replace our code and manually traverse from the comment to the username associated with that comment? If we look at our `Comment` instance, we can see there is a foreign key column called `author_id` with a value of "96". This is the key that we can use in `User` to look up which user authored a given comment. 
+How could we replace our code and manually traverse from the comment to the username associated with that comment? If we look at our `Comment` instance, we can see there is a foreign key column called `author_id` with a value of "96". This is the key that we can use in `User` to look up which user authored a given comment:
 
-To write this out: `User.where({ :id => 96 })`. Then we can `.at(0)` and `.username` on that to get the name we want. At the REPL: `>> User.where({ :id => 96 }).at(0).username` should return `=> "jolie"` **BENP: are the returns consistent with faker? will it always be "jolie"**. 
+```ruby
+>> comment
+=> #<Comment id: 2730, author_id: 96, body: "There was never a genius without a tincture of mad...", venue_id: 1, created_at: "2019-03-19 03:56:09.000000000 +0000", updated_at: "2019-10-08 10:25:00.000000000 +0000">
+>> comment.commenter
+=> nil
+>>
+```
 
-So this does work. We can traverse manually to get the username, and `comment.commenter` is not failing and returning `nil` because there is no username. **This is something you need to start to consider. There may be entries that *do* have `nil` values in a given column. Some bugs can be caused by invalid data and not problems in our code.**
+To write this out: `User.where({ :id => 96 })`. Then we can `.at(0)` and `.username` on that to get the name we want. At the REPL: `>> User.where({ :id => 96 }).at(0).username` should return `=> "jolie"`: 
+
+```ruby
+>> comment
+=> #<Comment id: 2730, author_id: 96, body: "There was never a genius without a tincture of mad...", venue_id: 1, created_at: "2019-03-19 03:56:09.000000000 +0000", updated_at: "2019-10-08 10:25:00.000000000 +0000">
+>> comment.commenter
+=> nil
+>> User.where({ :id => 96 })
+=> #<ActiveRecord::Relation [#<User id: 96, username: "jolie", created_at: "2018-12-19 04:59:05.000000000 +0000", updated_at: "2019-10-08 10:25:00.000000000 +0000">]>
+>> User.where({ :id => 96 }).at(0)
+=> #<User id: 96, username: "jolie", created_at: "2018-12-19 04:59:05.000000000 +0000", updated_at: "2019-10-08 10:25:00.000000000 +0000">
+>> User.where({ :id => 96 }).at(0).username
+=> "jolie"
+>>
+```
+
+So this does work. We can traverse manually to get the username, and `comment.commenter` is not failing and returning `nil` because there is no username. This is something you need to start to consider. There may be entries that *do* have `nil` values in a given column. Some bugs can be caused by invalid data and not problems in our code.
 
 However, here we saw the bug was not caused by invalid data. That means we need to go look in the `Comment` model at the `.commenter` method:
 
@@ -133,19 +155,19 @@ However, here we saw the bug was not caused by invalid data. That means we need 
 #  venue_id   :integer
 #
 
-class Comment < ApplicationRecord
+# ...
   def commenter
     my_id = self.id
+
     matching_users = User.where({ :id => my_id })
+
     the_user = matching_users.at(0)
+    
     return the_user
   end
-end
+# ...
 ```
-{: mark_lines="16-21"}
 
-**BENP: on https://github.com/appdev-projects/very-best-debug/blob/master/app/models/comment.rb the line already is corrected and says `my_id = self.author_id`. I changed it above to match the video**
-
-We are taking the `self.id`! But what we want is the `author_id` foreign key column *not* the primary key of the given comment. So change the line to `my_id = self.author_id`, and refresh **/venues/1** once more in our browser. It works!
+Aha! We are taking the `self.id`! But what we want is the `author_id` foreign key column *not* the primary key of the given comment. So change the line to `my_id = self.author_id`, and refresh `/venues/1` once more in our browser. It works!
 
 ---
